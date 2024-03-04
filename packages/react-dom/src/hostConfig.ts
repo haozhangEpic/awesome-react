@@ -1,15 +1,19 @@
 import { FiberNode } from 'react-reconciler/src/fiber';
-import { HostText } from 'react-reconciler/src/workTags';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { HostComponent, HostText } from 'react-reconciler/src/workTags';
+import { DOMElement, updateFiberProps } from './SyntheticEvent';
+import { Props } from 'shared/ReactTypes';
 
 export type Container = Element;
 export type Instance = Element;
 export type TextInstace = Text;
 
 // export const createInstance = (type: string, props: any): Instance => {
-export const createInstance = (type: string): Instance => {
+export const createInstance = (type: string, props: Props): Instance => {
 	// 还有props要处理
-	const element = document.createElement(type);
-	return element;
+	const element = document.createElement(type) as unknown;
+	updateFiberProps(element as DOMElement, props);
+	return element as DOMElement;
 };
 
 export const appendInitialChild = (
@@ -26,7 +30,7 @@ export const createTextInstance = (content: string) => {
 export function commitUpdate(fiber: FiberNode) {
 	switch (fiber.tag) {
 		case HostText:
-			const text = fiber.memoizedProps.context;
+			const text = fiber.memoizedProps.content;
 			return commitTextUpdate(fiber.stateNode, text);
 
 		default:

@@ -12,6 +12,7 @@ import {
 	HostText
 } from './workTags';
 import { NoFlags, Update } from './fiberFlags';
+import { updateFiberProps } from 'react-dom/src/SyntheticEvent';
 
 function markUpdate(fiber: FiberNode) {
 	fiber.flags |= Update;
@@ -25,10 +26,14 @@ export const completeWork = (wip: FiberNode) => {
 		case HostComponent:
 			if (current !== null && wip.stateNode) {
 				// update
+				// props 是否变化
+				// 产生变化Update flag
+				updateFiberProps(wip.stateNode, newProps);
 			} else {
+				// mount
 				// 构建DOM，将DOM插入到DOM树中
 				// const instance = createInstance(wip.type, newProps);
-				const instance = createInstance(wip.type);
+				const instance = createInstance(wip.type, newProps);
 				appendAllChildren(instance, wip);
 				wip.stateNode = instance;
 			}

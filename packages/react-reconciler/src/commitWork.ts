@@ -2,7 +2,7 @@
  * @Author: zhanghao
  * @Date: 2024-01-18 15:55:18
  * @LastEditors: zhanghao
- * @LastEditTime: 2024-02-28 16:50:20
+ * @LastEditTime: 2024-03-01 15:38:28
  * @Description:
  * @FilePath: \awsome-react\packages\react-reconciler\src\commitWork.ts
  */
@@ -92,7 +92,7 @@ function commitDeletion(childToDelete: FiberNode) {
 				}
 				return;
 			case FunctionComponent:
-				// TODO  useEffect unmount
+				// TODO  useEffect unmount 、解绑ref
 				return;
 			default:
 				if (__DEV__) {
@@ -105,7 +105,7 @@ function commitDeletion(childToDelete: FiberNode) {
 	if (rootHostNode !== null) {
 		const hostParent = getHostParent(childToDelete);
 		if (hostParent !== null) {
-			removeChild(rootHostNode, hostParent);
+			removeChild((rootHostNode as FiberNode).stateNode, hostParent);
 		}
 	}
 	childToDelete.return = null;
