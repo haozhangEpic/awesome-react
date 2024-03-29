@@ -47,6 +47,15 @@ export function removeChild(
 	child: Instance | TextInstace,
 	container: Container
 ) {
+	console.log('removeChild================>', child);
 	container.removeChild(child);
+}
+export function insertChildToContainer(
+	child: Instance,
+	container: Container,
+	before: Instance
+) {
+	console.log('insertChildToContainer================>', child, before);
+	container.insertBefore(child, before);
 }
 export const appendChildToContainer = appendInitialChild;

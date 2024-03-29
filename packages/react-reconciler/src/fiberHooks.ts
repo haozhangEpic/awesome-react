@@ -47,10 +47,10 @@ export function renderWithHooks(wip: FiberNode) {
 	const Component = wip.type;
 	const props = wip.pendingProps;
 	const children = Component(props);
+	// 重置操作
 	currentlyRenderingFiber = null;
 	workInProgressHook = null;
 	currentHook = null;
-	// 重置操作
 	return children;
 }
 

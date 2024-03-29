@@ -44,3 +44,79 @@
 	// setInitialState();
 	main(performance.now()); // 开始循环
 })();
+// 示例用法
+const tasks = [
+	() =>
+		new Promise((resolve) =>
+			setTimeout(() => {
+				console.log('Task1');
+				resolve('Task 1');
+			}, 2000)
+		),
+	() =>
+		new Promise((resolve) =>
+			setTimeout(() => {
+				console.log('Task2');
+				resolve('Task 2');
+			}, 200)
+		),
+	() =>
+		new Promise((resolve) =>
+			setTimeout(() => {
+				console.log('Task3');
+				resolve('Task 3');
+			}, 1500)
+		),
+	() =>
+		new Promise((resolve) =>
+			setTimeout(() => {
+				console.log('Task4');
+				resolve('Task 4');
+			}, 200)
+		),
+	() =>
+		new Promise((resolve) =>
+			setTimeout(() => {
+				console.log('Task5');
+				resolve('Task 5');
+			}, 800)
+		)
+];
+function poolStask(task_, limit = 2) {
+	return new Promise((resolve, reject) => {
+		let result = new Array(task_.length);
+		let workPool = [];
+		let i = 0;
+		function exec() {
+			if (workPool.length < limit) {
+				console.log('workPool===================>', workPool);
+				const length = limit - workPool.length;
+				for (let i_ = 0; i_ < length; i_++) {
+					// console.log('execc===================>', limit - workPool.length, i_);
+					// console.log('promise fulled===============>', task_[i], i);
+					if (!task_[i]) {
+						return;
+					}
+					let _i_ = i;
+					workPool.push(
+						task_[_i_]().then((e) => {
+							workPool.splice(i_, 1);
+							result[_i_] = e;
+							if (result.every((m) => isEmpt)) {
+								resolve(result);
+								return e;
+							}
+							exec();
+							return e;
+						})
+					);
+					i += 1;
+				}
+			}
+		}
+		exec();
+	});
+}
+poolStask(tasks, 3).then((result) => {
+	console.log(result);
+});
