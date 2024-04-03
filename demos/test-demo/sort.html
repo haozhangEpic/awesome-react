@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        main {
+            display: flex;
+            position: relative;
+        }
+
+        div {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 0;
+            background-color: #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all .3s;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+
+    </main>
+</body>
+<script>
+    let fragment = document.createDocumentFragment()
+
+    let data = [0, 30, 60, 90, 120]
+    data.forEach((i, index) => {
+        let item = document.createElement("div")
+        item.innerText = index + 1
+        item.style.left = i + 'px'
+        fragment.appendChild(item)
+    })
+    document.querySelector('main').appendChild(fragment)
+    function init() {
+        let middleNum = Math.ceil(data.length / 2) - 1
+        let nodes = document.querySelectorAll('div')
+        nodes[middleNum].style.backgroundColor = '#bfa'
+        function turn(dir) {
+            if (dir == 'right') {
+                for (let i = 0; i < data.length; i++) {
+                    data[i] -= 30
+                    if (data[i] < 0) {
+                        data[i] = 120
+                    }
+                    nodes[i].style.left = data[i] + 'px'
+                    nodes[i].style.backgroundColor = '#ccc'
+                }
+                middleNum += 1
+
+            } else {
+                for (let i = 0; i < data.length; i++) {
+                    data[i] += 30
+                    if (data[i] > 120) {
+                        data[i] = 0
+                    }
+                    nodes[i].style.left = data[i] + 'px'
+                    nodes[i].style.backgroundColor = '#ccc'
+                }
+                middleNum -= 1
+            }
+            console.log(middleNum)
+            middleNum < 0 && (middleNum = 4)
+            middleNum > 4 && (middleNum = 0)
+            nodes[middleNum].style.backgroundColor = '#bfa'
+        }
+        document.addEventListener(
+            'keydown', function (d) {
+                switch (d.keyCode) {
+                    case 37:
+                        turn('left')
+                        break;
+                    case 39:
+                        turn('right')
+                        break;
+                    default:
+                        break;
+                }
+            }
+        )
+    }
+    init()
+</script>
+
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+</body>
+<script>
+    // 在页面2中连接到共享的 Worker
+    const worker = new SharedWorker('sharedWorkers.js');
+
+    worker.port.onmessage = function (event) {
+        console.log(`Received message in page 2: ${event.data}`);
+    };
+
+    // 发送消息给共享的 Worker
+    worker.port.postMessage('Hello from page 2');
+</script>
+
+</html>

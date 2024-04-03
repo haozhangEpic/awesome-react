@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>矩阵</title>
+    <style>
+        #main {
+            display: flex;
+            width: 400px;
+            flex-wrap: wrap;
+        }
+
+        #main div {
+            width: 20px;
+            height: 20px;
+            box-sizing: border-box;
+            border-right: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main"></div>
+    <button id="btn">下落</button>
+</body>
+<script src="./snake.js"></script>
+<script>
+    let scene_data = Array.from({ length: 20 }, () => Array.from({ length: 20 }).fill(0));
+    let domMap = Array.from({ length: 20 }, () => Array.from({ length: 20 }).fill(null));
+    let currentIndex = [8, 3]
+    let prevTime = 0
+    let curTime = 0
+    let fallInterval = 500
+    let currentBlock = null
+    let bg = document.querySelector('#main')
+    function createBlock(type = 'div') {
+        if (type === 'div') {
+            let blc = document.createElement(type)
+            return blc
+        }
+        if (type === 'block') {
+            let config = window.snakeConfig[0]
+            return config
+        }
+        return null
+    }
+    function init() {
+        let wrap = document.createDocumentFragment()
+        for (let i = 0; i < scene_data.length; i++) {
+            const element = scene_data[i];
+            for (let j = 0; j < element.length; j++) {
+                const item = element[j];
+                let div = createBlock()
+                if (i == 0) {
+                    div.style.borderTop = '1px solid #ccc'
+                }
+                if (j === 0) {
+                    div.style.borderLeft = '1px solid #ccc'
+                }
+                domMap[i][j] = div
+                wrap.appendChild(div)
+            }
+        }
+        bg.appendChild(wrap)
+        currentBlock = createBlock('block')
+        document.querySelector('#btn').onclick = function () {
+            currentIndex[1] += 1
+            run()
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.keyCode === 13) {
+                rotateMatrix(currentBlock)
+            }
+            if (e.keyCode === 37 || e.keyCode === 39) {
+                currentIndex[0] += e.keyCode === 37 ? -1 : 1
+            }
+            merge(scene_data, currentBlock)
+            draw(scene_data)
+            merge(scene_data, currentBlock, 'clear')
+        })
+    }
+    function merge(scene, block, type) {
+        for (let i = currentIndex[1], i_ = block.length - 1; i_ >= 0 && i >= 0; i_--, i--) {
+            for (let j = currentIndex[0], j_ = 0; j_ < block[i_].length && j < scene[i].length; j++, j_++) {
+                // console.log(block[i_][j_])
+                if (type === 'clear') {
+                    scene[i][j] = 0
+                } else {
+                    if (scene[i][j]) {
+                        // 代表这个位置已经有别的块了
+                        return true
+
+                    }
+                    scene[i][j] = block[i_][j_]
+                }
+                // console.log(scene[i][j])
+            }
+        }
+        return false
+    }
+    function draw(data) {
+        for (let i = 0; i < data.length; i++) {
+            const element = data[i];
+            for (let j = 0; j < element.length; j++) {
+                domMap[i][j].style.backgroundColor = data[i][j] ? '#ccc' : ''
+            }
+        }
+    }
+    function run() {
+        let result = merge(scene_data, currentBlock)
+        draw(scene_data)
+        if (currentIndex[1] >= scene_data.length - 1) {
+            // 触底了
+            result = true
+        }
+        if (!result) {
+            merge(scene_data, currentBlock, 'clear')
+            currentIndex[1] += 1
+
+        } else {
+            // 代表需要生成下一个方块了
+            console.log('到底了')
+            merge(scene_data, currentBlock)
+
+
+            currentIndex = [8, 0]
+            currentBlock = createBlock('block')
+        }
+        // if (currentIndex[1] < 20) {
+        //     // console.log(scene_data)
+        //     setTimeout(() => {
+        //         currentIndex[1] += 1
+        //         // run()
+        //     }, 1000)
+        // }
+    }
+    function rotateMatrix(matrix) {
+        const n = matrix.length;
+        for (let i = 0; i < n / 2; i++) {
+            for (let j = i; j < n - i - 1; j++) {
+                let temp = matrix[i][j];
+                matrix[i][j] = matrix[n - 1 - j][i];
+                matrix[n - 1 - j][i] = matrix[n - 1 - i][n - 1 - j];
+                matrix[n - 1 - i][n - 1 - j] = matrix[j][n - 1 - i];
+                matrix[j][n - 1 - i] = temp;
+            }
+        }
+    }
+    function main() {
+        window.requestAnimationFrame((e) => {
+            curTime = e
+            // console.log(curTime - prevTime)
+            if (curTime - prevTime > fallInterval) {
+                run()
+                prevTime = e
+            }
+            main()
+        })
+    }
+    init()
+    main()
+</script>
+
+</html>

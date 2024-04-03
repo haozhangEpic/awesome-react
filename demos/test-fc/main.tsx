@@ -29,18 +29,21 @@ function App() {
 			: [<li key={3}>3</li>, <li key={2}>2</li>, <li key={1}>1</li>];
 	// console.log('arr=================>', arr[0].props.children = 55)
 	return (
+		// <>
+		// 	<ul onClickCapture={() => setNum(num + 1)}>
+		// 		<li>4</li>
+		// 		<li>5</li>
+		// 		{arr}
+		// 	</ul>
+		// </>
 		<>
-			<ul onClickCapture={() => setNum(num + 1)}>
-				<li>4</li>
-				<li>5</li>
-				{arr}
-			</ul>
+			<Child />
 		</>
 	);
 	// return <div>1</div>
 }
-
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 	(<App />) as any
 );
+
 // ReactDOM.createRoot(document.getElementById('root')!)
