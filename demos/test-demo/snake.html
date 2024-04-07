@@ -6,9 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>矩阵</title>
     <style>
+        #score {
+            width: 400px;
+            text-align: center;
+
+        }
+
         #main {
             display: flex;
-            width: 400px;
+            width: 200px;
             flex-wrap: wrap;
         }
 
@@ -23,18 +29,25 @@
 </head>
 
 <body>
+    <h1 id="score">分数：0</h1>
     <div id="main"></div>
     <button id="btn">下落</button>
+    <button id="start">开始</button>
 </body>
 <script src="./snake.js"></script>
 <script>
-    let scene_data = Array.from({ length: 20 }, () => Array.from({ length: 20 }).fill(0));
-    let domMap = Array.from({ length: 20 }, () => Array.from({ length: 20 }).fill(null));
-    let currentIndex = [8, 3]
+    const ROW_MAX = 20
+    const COL_MAX = 10
+    let taskFlag = null
+    let scene_data = Array.from({ length: ROW_MAX }, () => Array.from({ length: COL_MAX }).fill(0));
+    let domMap = Array.from({ length: ROW_MAX }, () => Array.from({ length: COL_MAX }).fill(null));
+    let currentIndex = [2, 3]
     let prevTime = 0
     let curTime = 0
     let fallInterval = 500
     let currentBlock = null
+    let score = 0;
+    let scoreDom = document.querySelector('#score')
     let bg = document.querySelector('#main')
     function createBlock(type = 'div') {
         if (type === 'div') {
@@ -42,8 +55,17 @@
             return blc
         }
         if (type === 'block') {
-            let config = window.snakeConfig[0]
-            return config
+            let maxRandom = window.snakeConfig.length
+            let randomNum = Math.floor(Math.random() * (maxRandom))
+            let copy = [[]]
+            let config = window.snakeConfig[1]
+            config.forEach((e, i) => {
+                copy[i] instanceof Array ? copy[i] : copy[i] = []
+                e.forEach((e_, i_) => {
+                    copy[i][i_] = config[i][i_]
+                })
+            })
+            return copy
         }
         return null
     }
@@ -67,77 +89,220 @@
         bg.appendChild(wrap)
         currentBlock = createBlock('block')
         document.querySelector('#btn').onclick = function () {
-            currentIndex[1] += 1
             run()
+        }
+        document.querySelector('#start').onclick = function () {
+            main()
         }
         document.addEventListener('keydown', function (e) {
             if (e.keyCode === 13) {
-                rotateMatrix(currentBlock)
+                let matrix = rotateMatrix(currentBlock)
+                let result = check('down', scene_data, matrix, [currentIndex[0], currentIndex[1]])
+                if (result) {
+                    // 复原或者换位
+                } else {
+                    currentBlock = matrix
+                    draw(scene_data)
+                }
             }
             if (e.keyCode === 37 || e.keyCode === 39) {
-                currentIndex[0] += e.keyCode === 37 ? -1 : 1
+                let result = null
+                switch (e.keyCode) {
+                    case 37:
+                        result = check('axis_l', scene_data, currentBlock, [currentIndex[0] - 1, currentIndex[1]])
+                        console.log('left', result, [currentIndex[0] - 1, currentIndex[1]])
+                        if (!result) {
+                            currentIndex[0] -= 1
+                            draw(scene_data)
+                        }
+                        break;
+                    case 39:
+                        result = check('axis_r', scene_data, currentBlock, [currentIndex[0] + 1, currentIndex[1]])
+                        if (!result) {
+                            currentIndex[0] += 1
+                            draw(scene_data)
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
-            merge(scene_data, currentBlock)
-            draw(scene_data)
-            merge(scene_data, currentBlock, 'clear')
         })
     }
-    function merge(scene, block, type) {
-        for (let i = currentIndex[1], i_ = block.length - 1; i_ >= 0 && i >= 0; i_--, i--) {
-            for (let j = currentIndex[0], j_ = 0; j_ < block[i_].length && j < scene[i].length; j++, j_++) {
-                // console.log(block[i_][j_])
-                if (type === 'clear') {
-                    scene[i][j] = 0
-                } else {
-                    if (scene[i][j]) {
-                        // 代表这个位置已经有别的块了
-                        return true
+    function merge(scene, block, currentIndex) {
 
+        for (let i = currentIndex[1], i_ = block.length - 1; i_ >= 0 && i >= 0; i_--, i--) {
+            if (scene[i]) {
+                for (let j = currentIndex[0], j_ = 0; j_ < block[i_].length && j < scene[i].length; j++, j_++) {
+                    if (block[i_][j_]) {
+                        scene[i][j] = block[i_][j_]
                     }
-                    scene[i][j] = block[i_][j_]
                 }
-                // console.log(scene[i][j])
             }
         }
-        return false
     }
     function draw(data) {
+        // 画已经落好的块
         for (let i = 0; i < data.length; i++) {
             const element = data[i];
             for (let j = 0; j < element.length; j++) {
+                console.log('draw================>', i, j)
                 domMap[i][j].style.backgroundColor = data[i][j] ? '#ccc' : ''
             }
         }
+        // 画正在操作的块
+        for (let index = currentBlock.length - 1; index >= 0; index--) {
+            const element = currentBlock[index];
+            let domRowIndex = currentBlock.length - 1 - index
+            for (let j = 0; j < element.length; j++) {
+                if (domMap[currentIndex[1] - domRowIndex] && domMap[currentIndex[1] - domRowIndex][currentIndex[0] + j]) {
+                    if (currentBlock[index][j]) {
+                        domMap[currentIndex[1] - domRowIndex][currentIndex[0] + j].style.backgroundColor = '#ccc'
+                    }
+
+                }
+            }
+        }
+        scoreDom.innerHTML = `分数：${score}`
     }
-    function run() {
-        let result = merge(scene_data, currentBlock)
-        draw(scene_data)
-        if (currentIndex[1] >= scene_data.length - 1) {
+    function check(dir = 'down', bg, bk, position) {
+        let scene_data = bg
+        let currentBlock = bk
+        let currentIndex = position
+        let result = false
+        if (currentIndex[1] > scene_data.length - 1 && currentBlock[currentBlock.length - 1].every(i => i == 1)) {
             // 触底了
             result = true
+            return result
         }
-        if (!result) {
-            merge(scene_data, currentBlock, 'clear')
+        // 判断是否触底需要提前一步预测
+        // let lastRow = scene_data[currentIndex[1]]
+        // 检测横向是否有块,先从当前方块的最底下一行开始检测
+        switch (dir) {
+            case 'down':
+                for (let i = currentBlock.length - 1; i >= 0; i--) {
+                    const currentLastRow = currentBlock[i];
+                    let sceneRowIndex = currentIndex[1] - currentBlock.length + 1 + i
+                    for (let j = 0; j < currentLastRow.length; j++) {
+                        const block = currentLastRow[j];
+                        if (block && sceneRowIndex >= 0) {
+                            if (!scene_data[sceneRowIndex] || (sceneRowIndex >= 0 && scene_data[sceneRowIndex][j + currentIndex[0]])) {
+                                result = true
+                                break;
+                            }
+                        }
+                    }
+                    if (result) {
+                        break
+                    }
+
+                }
+                break;
+            case 'axis_r':
+                for (let i = currentBlock.length - 1; i >= 0; i--) {
+                    const currentLastRow = currentBlock[i];
+                    let sceneRowIndex = currentIndex[1] - currentBlock.length + 1 + i
+                    for (let j = currentLastRow.length - 1; j >= 0; j--) {
+                        const block = currentLastRow[j];
+                        if (block) {
+                            // 遍历有边界情况
+                            if (sceneRowIndex >= 0 && (scene_data[sceneRowIndex][j + currentIndex[0]] || ((currentIndex[0] + j) > (scene_data[sceneRowIndex].length - 1)))) {
+                                result = true
+                                break;
+                            }
+                            continue
+                        }
+                    }
+                    if (result) {
+                        break
+                    }
+
+                }
+                break;
+            case 'axis_l':
+                for (let i = currentBlock.length - 1; i >= 0; i--) {
+                    const currentLastRow = currentBlock[i];
+                    let sceneRowIndex = currentIndex[1] - currentBlock.length + 1 + i
+                    for (let j = 0; j < currentLastRow.length; j++) {
+                        const block = currentLastRow[j];
+                        if (block) {
+                            // 遍历有边界情况
+                            if ((sceneRowIndex >= 0 && scene_data[sceneRowIndex][j + currentIndex[0]]) || currentIndex[0] + j < 0) {
+                                result = true
+                                break;
+                            }
+                            continue
+                        }
+                    }
+                    if (result) {
+                        break
+                    }
+
+                }
+                break;
+            case 'rotate':
+                break;
+            default:
+                break;
+        }
+
+        // result = merge(scene_data, currentBlock)
+        return result
+    }
+    // 得分，此处可以计算得分
+    function broadcast(rows) {
+        score += rows * 10
+
+    }
+    function calculateScores(scene_data) {
+        let scoreList = []
+        for (let i = 0; i < scene_data.length; i++) {
+            const element = scene_data[i];
+            let res = element.every(i => i == 1)
+            // 标记需要消除计算分数
+            if (res) {
+                scoreList.push(i)
+            }
+        }
+
+        // 是否需要在下一个帧中继续结算方块
+        if (scoreList.length > 0) {
+            scoreList.forEach(rowIndex => {
+                scene_data.splice(rowIndex, 1)
+                scene_data.unshift(new Array(COL_MAX).fill(0))
+                // draw(scene_data)
+            })
+            broadcast(scoreList.length)
+            return true
+        } else {
+            return false
+        }
+    }
+    function run() {
+        let result = check(undefined, scene_data, currentBlock, [currentIndex[0], currentIndex[1] + 1])
+        console.log(result, currentIndex[0], currentIndex[1])
+        draw(scene_data)
+        if (result) {
+            //当前块已经触底了
+            console.log('run============>', result)
+            merge(scene_data, currentBlock, currentIndex)
+            calculateScores(scene_data)
+            currentIndex = [Math.floor(COL_MAX / 2), 0]
+            currentBlock = createBlock('block')
+        } else {
+
+            // 继续下落
             currentIndex[1] += 1
 
-        } else {
-            // 代表需要生成下一个方块了
-            console.log('到底了')
-            merge(scene_data, currentBlock)
-
-
-            currentIndex = [8, 0]
-            currentBlock = createBlock('block')
         }
-        // if (currentIndex[1] < 20) {
-        //     // console.log(scene_data)
-        //     setTimeout(() => {
-        //         currentIndex[1] += 1
-        //         // run()
-        //     }, 1000)
-        // }
     }
-    function rotateMatrix(matrix) {
+    function deepClone2DArray(arr) {
+        return arr.map(function (subArray) {
+            return Array.isArray(subArray) ? deepClone2DArray(subArray) : subArray;
+        });
+    }
+    function rotateMatrix(arr) {
+        let matrix = deepClone2DArray(arr)
         const n = matrix.length;
         for (let i = 0; i < n / 2; i++) {
             for (let j = i; j < n - i - 1; j++) {
@@ -148,9 +313,10 @@
                 matrix[j][n - 1 - i] = temp;
             }
         }
+        return matrix
     }
     function main() {
-        window.requestAnimationFrame((e) => {
+        taskFlag = window.requestAnimationFrame((e) => {
             curTime = e
             // console.log(curTime - prevTime)
             if (curTime - prevTime > fallInterval) {
@@ -161,7 +327,7 @@
         })
     }
     init()
-    main()
+    // main()
 </script>
 
 </html>
