@@ -19,8 +19,6 @@
         }
 
         #main div {
-            width: 20px;
-            height: 20px;
             box-sizing: border-box;
             border-right: 1px solid #ccc;
             border-bottom: 1px solid #ccc;
@@ -33,11 +31,13 @@
     <div id="main"></div>
     <button id="btn">下落</button>
     <button id="start">开始</button>
+    <button id="over">结束</button>
 </body>
 <script src="./snake.js"></script>
 <script>
-    const ROW_MAX = 20
+    const ROW_MAX = 10
     const COL_MAX = 10
+    const BACKGROUND_BLOCK_SIZE = 20
     let taskFlag = null
     let scene_data = Array.from({ length: ROW_MAX }, () => Array.from({ length: COL_MAX }).fill(0));
     let domMap = Array.from({ length: ROW_MAX }, () => Array.from({ length: COL_MAX }).fill(null));
@@ -47,6 +47,7 @@
     let fallInterval = 500
     let currentBlock = null
     let score = 0;
+    let stopFlag = false
     let scoreDom = document.querySelector('#score')
     let bg = document.querySelector('#main')
     function createBlock(type = 'div') {
@@ -82,17 +83,23 @@
                 if (j === 0) {
                     div.style.borderLeft = '1px solid #ccc'
                 }
+                div.style.height = BACKGROUND_BLOCK_SIZE + 'px'
+                div.style.width = BACKGROUND_BLOCK_SIZE + 'px'
                 domMap[i][j] = div
                 wrap.appendChild(div)
             }
         }
         bg.appendChild(wrap)
+        bg.style.width = BACKGROUND_BLOCK_SIZE * COL_MAX + 'px'
         currentBlock = createBlock('block')
         document.querySelector('#btn').onclick = function () {
             run()
         }
         document.querySelector('#start').onclick = function () {
             main()
+        }
+        document.querySelector('#over').onclick = function () {
+            gameOver()
         }
         document.addEventListener('keydown', function (e) {
             if (e.keyCode === 13) {
@@ -102,6 +109,10 @@
                     // 复原或者换位
                 } else {
                     currentBlock = matrix
+                    let positon = check('rotateEdge', scene_data, matrix, currentIndex)
+                    if (positon) {
+                        currentIndex = positon
+                    }
                     draw(scene_data)
                 }
             }
@@ -110,7 +121,6 @@
                 switch (e.keyCode) {
                     case 37:
                         result = check('axis_l', scene_data, currentBlock, [currentIndex[0] - 1, currentIndex[1]])
-                        console.log('left', result, [currentIndex[0] - 1, currentIndex[1]])
                         if (!result) {
                             currentIndex[0] -= 1
                             draw(scene_data)
@@ -146,7 +156,6 @@
         for (let i = 0; i < data.length; i++) {
             const element = data[i];
             for (let j = 0; j < element.length; j++) {
-                console.log('draw================>', i, j)
                 domMap[i][j].style.backgroundColor = data[i][j] ? '#ccc' : ''
             }
         }
@@ -180,13 +189,19 @@
         // 检测横向是否有块,先从当前方块的最底下一行开始检测
         switch (dir) {
             case 'down':
+                // 方块最高有效行
+                let topRowIndex = currentBlock.length - 1
                 for (let i = currentBlock.length - 1; i >= 0; i--) {
                     const currentLastRow = currentBlock[i];
                     let sceneRowIndex = currentIndex[1] - currentBlock.length + 1 + i
                     for (let j = 0; j < currentLastRow.length; j++) {
                         const block = currentLastRow[j];
                         if (block && sceneRowIndex >= 0) {
+                            topRowIndex = i
                             if (!scene_data[sceneRowIndex] || (sceneRowIndex >= 0 && scene_data[sceneRowIndex][j + currentIndex[0]])) {
+                                if (currentIndex[1] <= topRowIndex) {
+                                    gameOver()
+                                }
                                 result = true
                                 break;
                             }
@@ -240,7 +255,15 @@
 
                 }
                 break;
-            case 'rotate':
+            case 'rotateEdge':
+                // 判断变形以后是否超出边界需要移动位置
+                // 获取左右两侧最长边界位置
+                let { left, right } = getBlockEdgeMaxIndex(currentBlock)
+                if (currentIndex[0] + left < 0) {
+                    return [0 - left, currentIndex[1]]
+                } else if (right + currentIndex[0] > COL_MAX - 1) {
+                    return [COL_MAX - 1 - right, currentIndex[1]]
+                }
                 break;
             default:
                 break;
@@ -278,19 +301,50 @@
             return false
         }
     }
+    // 获取盒子上下左右有效边界
+    function getBlockEdgeMaxIndex(currentBlock) {
+        let left = currentBlock[0].length - 1
+        let right = 0
+        let top = currentBlock.length - 1
+        let bottom = 0
+        for (let i = 0; i < currentBlock.length; i++) {
+            const element = currentBlock[i];
+            for (let j = 0; j < element.length; j++) {
+                const block = element[j];
+                if (block) {
+                    top = top < i ? i : top
+                    bottom = bottom > i ? bottom : i
+                    left = j < left ? j : left
+                    right = j > right ? j : right
+                }
+            }
+        }
+        return {
+            top,
+            bottom,
+            left,
+            right
+        }
+    }
+    // 游戏结束
+    function gameOver() {
+        stopFlag = true
+        cancelAnimationFrame(taskFlag)
+        taskFlag = null
+        alert('游戏结束，您的得分为：' + score)
+    }
     function run() {
+        console.log('run')
         let result = check(undefined, scene_data, currentBlock, [currentIndex[0], currentIndex[1] + 1])
-        console.log(result, currentIndex[0], currentIndex[1])
         draw(scene_data)
         if (result) {
             //当前块已经触底了
-            console.log('run============>', result)
             merge(scene_data, currentBlock, currentIndex)
             calculateScores(scene_data)
-            currentIndex = [Math.floor(COL_MAX / 2), 0]
             currentBlock = createBlock('block')
+            let { left } = getBlockEdgeMaxIndex(currentBlock)
+            currentIndex = [Math.floor(COL_MAX / 2) - left, 0]
         } else {
-
             // 继续下落
             currentIndex[1] += 1
 
@@ -320,8 +374,10 @@
             curTime = e
             // console.log(curTime - prevTime)
             if (curTime - prevTime > fallInterval) {
-                run()
                 prevTime = e
+                if (!stopFlag) {
+                    run()
+                }
             }
             main()
         })
